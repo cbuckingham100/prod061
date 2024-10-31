@@ -197,7 +197,9 @@ Partial Class frmTTOTrackingSystem
         Me.Controls.Add(Me.lblPrinterType)
         Me.Controls.Add(Me.txtPrinterType)
         Me.Controls.Add(Me.MenuStrip1)
+        Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.MainMenuStrip = Me.MenuStrip1
+        Me.MaximizeBox = False
         Me.Name = "frmTTOTrackingSystem"
         Me.Text = "TTO Serial Number Tracking System"
         CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).EndInit()

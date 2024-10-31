@@ -47,6 +47,9 @@
   <PropertyGroup>
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>tt500_icon.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -133,6 +136,8 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Resources\linxlogo.png" />
+    <Content Include="tt500_icon.ico" />
+    <Content Include="tt500_tRg_icon.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LinxLib\LinxLib.vbproj">

@@ -3,6 +3,7 @@
 ' =============================================================================
 '   Ver     Lib     Date        Owner   Description
 '   1.0     5.60    25/10/24    RK      TTO Tracking
+'   1.1     5.60    25/10/24    RK      TTO Tracking Production Migration
 
 ' =============================================================================+
 
@@ -11,7 +12,7 @@ Imports LinxLib.CommonLib
 
 Public Class frmTTOTrackingSystem
 
-    Public sExeVersion As String = "1.0"
+    Public sExeVersion As String = "1.1"
     ' Declare variables for dynamic component textboxes
     Private machine1TextBoxes As List(Of TextBox)
     Private machine2TextBoxes As List(Of TextBox)
@@ -82,8 +83,8 @@ Public Class frmTTOTrackingSystem
             machine1Components = {"Sensor PCB", "Printhead PCBA", "Main PCB", "Printhead", "Light Box PCB"}
             machine2Components = {"PSU PCB", "Raiser PCB", "LCD Screen", "GUI PCB"}
         ElseIf sPrinterType = "TT0500" Then
-            machine1Components = {"Printhead", "Raiser PCB"}
-            machine2Components = {"Main PCB", "GUI PCB"}
+            machine1Components = {"Printhead", "Raiser PCB", "Main PCB"}
+            machine2Components = {"GUI PCB"}
         Else
             Exit Sub
         End If
@@ -91,6 +92,26 @@ Public Class frmTTOTrackingSystem
         ' Show complete buttons
         btnComplete1.Show()
         btnComplete2.Show()
+
+        machine1TextBoxes = New List(Of TextBox)()
+        machine2TextBoxes = New List(Of TextBox)()
+        machine1EditIcons = New List(Of PictureBox)()
+        machine2EditIcons = New List(Of PictureBox)()
+
+        ' Clear previous controls (TextBoxes and Labels) from the group boxes in Bench 2 and Bench 4
+        ' Clear Bench 2 controls
+        For Each ctrl As Control In grpMachine1.Controls.OfType(Of Control)().ToList()
+            If TypeOf ctrl Is TextBox Or TypeOf ctrl Is Label Or TypeOf ctrl Is PictureBox Then
+                grpMachine1.Controls.Remove(ctrl)
+            End If
+        Next
+
+        ' Clear Bench 4 controls
+        For Each ctrl As Control In grpMachine2.Controls.OfType(Of Control)().ToList()
+            If TypeOf ctrl Is TextBox Or TypeOf ctrl Is Label Or TypeOf ctrl Is PictureBox Then
+                grpMachine2.Controls.Remove(ctrl)
+            End If
+        Next
 
         ' Create Labels, TextBoxes, and Edit Buttons for Machine 1 components
         For i As Integer = 0 To machine1Components.Length - 1
@@ -118,6 +139,8 @@ Public Class frmTTOTrackingSystem
                 Case "Main PCB" : txtComponent.Text = xLabel_Data.MainPcb
                 Case "Printhead" : txtComponent.Text = xLabel_Data.Printhead
                 Case "Light Box PCB" : txtComponent.Text = xLabel_Data.LightBoxPcb
+                Case "Raiser PCB" : txtComponent.Text = xLabel_Data.RaiserPcb
+
             End Select
 
             ' Add key event handler for automatic jump to next TextBox after scanning
@@ -194,17 +217,18 @@ Public Class frmTTOTrackingSystem
                 AddHandler editIcon.Click, AddressOf EditIconClick
                 grpMachine2.Controls.Add(editIcon)
                 machine2EditIcons.Add(editIcon)
-
+                Application.DoEvents()
             End If
         Next
 
-        If xLabel_Data.PC1Completed = "True" And xLabel_Data.PC2Completed = "False" Then
+        If xLabel_Data.PC1Completed = "True" And (xLabel_Data.PC2Completed = "False" Or xLabel_Data.PC2Completed = "") Then
             machine2TextBoxes(0).Enabled = True
             machine2TextBoxes(0).Focus() ' Set focus to the machine 2 first TextBox
         ElseIf (xLabel_Data.PC1Completed = "False" Or xLabel_Data.PC1Completed = "") And (xLabel_Data.PC2Completed = "False" Or xLabel_Data.PC2Completed = "") Then
             machine1TextBoxes(0).Enabled = True
             machine1TextBoxes(0).Focus() ' Set focus to the machine 1 first TextBox
         End If
+        Application.DoEvents()
     End Sub
 
     ' Handle automatic jump after component scanned
@@ -248,11 +272,13 @@ Public Class frmTTOTrackingSystem
                     .PC1Completed = True
                 End With
 
-            Case "TTO500"
+            Case "TT0500"
                 ' Assign values to xLabel_Data properties for TTO500
                 With xLabel_Data
                     .Printhead = machine1TextBoxes(0).Text
                     .RaiserPcb = machine1TextBoxes(1).Text
+                    .MainPcb = machine1TextBoxes(2).Text
+                    .PC1Completed = True
                 End With
 
             Case Else
@@ -262,10 +288,12 @@ Public Class frmTTOTrackingSystem
 
         ' Insert or update the TTO components in the database
         If xLabel_Data.InsertUpdateTTOComponents() Then
-            If xLabel_Data.PC2Completed = "False" Then
+            If xLabel_Data.PC1Completed = "True" And (xLabel_Data.PC2Completed = "False" Or xLabel_Data.PC2Completed = "") Then
                 MessageBox.Show("Bench 2 components completed. Bench 4 components are now ready to scan.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Else
+            ElseIf xLabel_Data.PC1Completed = "True" Then
                 MessageBox.Show("Bench 2 components completed.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Else
+                MessageBox.Show("Unable to complete Bench 2 components.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End If
         End If
 
@@ -301,11 +329,11 @@ Public Class frmTTOTrackingSystem
                     .PC2Completed = True
                 End With
 
-            Case "TTO500"
+            Case "TT0500"
                 ' Assign values to xLabel_Data properties for TTO500
                 With xLabel_Data
-                    .MainPcb = machine2TextBoxes(0).Text
-                    .GUIPcb = machine2TextBoxes(1).Text
+                    .GUIPcb = machine2TextBoxes(0).Text
+                    .PC2Completed = True
                 End With
 
                 ' Add other printer types here as needed
@@ -316,11 +344,17 @@ Public Class frmTTOTrackingSystem
         End Select
 
         ' Insert or update the TTO components in the database for Machine 2
-        xLabel_Data.InsertUpdateTTOComponents()
+        If xLabel_Data.InsertUpdateTTOComponents() Then
+            If xLabel_Data.PC2Completed = "True" Then
+                ' Display success message once all components are completed
+                MessageBox.Show("Bench 4 components completed.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                CreateComponents(xLabel_Data.PrinterType)
+            Else
+                MessageBox.Show("Unable to complete Bench 2 components.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End If
+        End If
 
-        ' Display success message once all components are completed
-        MessageBox.Show("Bench 4 components completed.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-        ClearAllTextboxes(True)
+
     End Sub
 
     ' Handle Edit Icon Click to enable TextBox after password validation
