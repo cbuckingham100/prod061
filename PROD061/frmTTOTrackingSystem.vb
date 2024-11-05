@@ -241,7 +241,18 @@ Public Class frmTTOTrackingSystem
             Dim currentMachineTextBoxes As List(Of TextBox) = If(machine1TextBoxes.Contains(currentTextBox), machine1TextBoxes, machine2TextBoxes)
             currentComponentIndex = currentMachineTextBoxes.IndexOf(currentTextBox)
 
-            If currentComponentIndex < currentMachineTextBoxes.Count - 1 Then
+            ' Check if it’s the last TextBox for Machine 1 (PC1) and trigger completion if so
+            If currentMachineTextBoxes Is machine1TextBoxes AndAlso currentComponentIndex = machine1TextBoxes.Count - 1 Then
+                ' Automatically trigger the complete event for Machine 1
+                btnComplete_Click(btnComplete1, EventArgs.Empty)
+
+                ' Check if it’s the last TextBox for Machine 2 (PC2) and trigger completion if so
+            ElseIf currentMachineTextBoxes Is machine2TextBoxes AndAlso currentComponentIndex = machine2TextBoxes.Count - 1 Then
+                ' Automatically trigger the complete event for Machine 2
+                btnComplete2_Click(btnComplete2, EventArgs.Empty)
+                ClearAllTextboxes(True)
+
+            ElseIf currentComponentIndex < currentMachineTextBoxes.Count - 1 Then
                 ' Enable and focus on the next component's TextBox
                 currentMachineTextBoxes(currentComponentIndex + 1).Enabled = True
                 currentMachineTextBoxes(currentComponentIndex + 1).Focus()
