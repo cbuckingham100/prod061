@@ -4,6 +4,7 @@
 '   Ver     Lib     Date        Owner   Description
 '   1.0     5.60    25/10/24    RK      TTO Tracking
 '   1.1     5.60    25/10/24    RK      TTO Tracking Production Migration
+'   1.2     5.64    25/10/24    RK      LNXSD-85446 - Update to TTO serial tracking software
 
 ' =============================================================================+
 
@@ -12,7 +13,7 @@ Imports LinxLib.CommonLib
 
 Public Class frmTTOTrackingSystem
 
-    Public sExeVersion As String = "1.1"
+    Public sExeVersion As String = "1.2"
     ' Declare variables for dynamic component textboxes
     Private machine1TextBoxes As List(Of TextBox)
     Private machine2TextBoxes As List(Of TextBox)
@@ -131,6 +132,7 @@ Public Class frmTTOTrackingSystem
             txtComponent.Size = New Size(250, 30)
             txtComponent.Enabled = False ' Disable all components initially
             txtComponent.Font = New Font("Arial", 11)
+            txtComponent.Name = componentName
 
             ' Load saved data for Machine 1
             Select Case componentName
@@ -186,6 +188,7 @@ Public Class frmTTOTrackingSystem
             txtComponent.Size = New Size(250, 30)
             txtComponent.Enabled = False ' Disable all components initially
             txtComponent.Font = New Font("Arial", 11)
+            txtComponent.Name = componentName
 
             ' Load saved data for Machine 2
             Select Case componentName
@@ -237,6 +240,30 @@ Public Class frmTTOTrackingSystem
         Dim currentTextBox As TextBox = CType(sender, TextBox)
 
         If e.KeyCode = Keys.Enter AndAlso currentTextBox.Text <> "" Then
+
+            If (xLabel_Data.PrinterType = "TT0750" Or xLabel_Data.PrinterType = "TT1000") AndAlso
+       (LCase(currentTextBox.Name) = "printhead" Or LCase(currentTextBox.Name) = "printhead pcba" Or LCase(currentTextBox.Name) = "main pcb") Then
+
+                Dim sPartNo = InputBox("Please Enter the Part Number:", "Part Number Required")
+                Dim isValidPartNo As Boolean = False
+
+                Select Case LCase(currentTextBox.Name)
+                    Case "printhead"
+                        isValidPartNo = Trim(sPartNo) = Trim(xLabel_Data.PrintheadPartNo)
+                    Case "printhead pcba"
+                        isValidPartNo = Trim(sPartNo) = Trim(xLabel_Data.PrintheadPcbaPartNo)
+                    Case "main pcb"
+                        isValidPartNo = Trim(sPartNo) = Trim(xLabel_Data.MainPcbPartNo)
+                End Select
+
+                If Not isValidPartNo Then
+                    MessageBox.Show("Incorrect Component Used, Please Replace", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    currentTextBox.Clear()
+                    currentTextBox.Select()
+                    Exit Sub
+                End If
+            End If
+
             ' Move to the next TextBox in the list after the current one
             Dim currentMachineTextBoxes As List(Of TextBox) = If(machine1TextBoxes.Contains(currentTextBox), machine1TextBoxes, machine2TextBoxes)
             currentComponentIndex = currentMachineTextBoxes.IndexOf(currentTextBox)
